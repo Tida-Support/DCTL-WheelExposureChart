@@ -16,12 +16,12 @@ The chart offers several controls to adjust both the appearance of the color whe
 - Luma Steps:Defines the number of brightness steps in the luma chart. A higher number of steps creates a finer gradient of brightness levels, while fewer steps result in a more distinct, stepped gradient.
 - Hue Pieces:Adjusts how many segments the color wheel is divided into. Increasing the number results in finer divisions with more color segments, while decreasing it makes the wheel appear with larger, broader color sections.
  
-### Wheel Type:Allows you to select the color wheel model to display. Options include:
+### - Wheel Type:Allows you to select the color wheel model to display. Options include:
  + None: No color wheel.
  + YCbCr: Displays a color wheel based on the YCbCr color space, commonly used in video encoding.
  + HSL-120: Displays an HSL color wheel with hues offset by 120 degrees.
  + HSL: Displays a standard HSL color wheel.
-### Ramp Type:Determines the type of gradient shown in the luma chart. The options include:
+### - Ramp Type:Determines the type of gradient shown in the luma chart. The options include:
  + Black: A black background.
  + White: A white gradient.
  + Steps: A stepped luma chart with distinct brightness levels.
