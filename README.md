@@ -24,7 +24,7 @@ The chart offers several controls to adjust both the appearance of the color whe
 
 -- HSL: Displays a standard HSL color wheel.
 
- -Ramp Type:Determines the type of gradient shown in the luma chart. The options include:
+- Ramp Type:Determines the type of gradient shown in the luma chart. The options include:
  
 -- Black: A black background.
 
@@ -33,6 +33,8 @@ The chart offers several controls to adjust both the appearance of the color whe
 -- Steps: A stepped luma chart with distinct brightness levels.
 
 -- Smooth: A smooth luma gradient with continuous changes in brightness.
+
+
 
 
 You can wath a short introduction about the Wheel Exposure Chart here:
