@@ -22,10 +22,10 @@ The chart offers several controls to adjust both the appearance of the color whe
  + HSL-120: Displays an HSL color wheel with hues offset by 120 degrees.
  + HSL: Displays a standard HSL color wheel.
 ### Ramp Type:Determines the type of gradient shown in the luma chart. The options include:
-  Black: A black background.
-  White: A white gradient.
-  Steps: A stepped luma chart with distinct brightness levels.
-  Smooth: A smooth luma gradient with continuous changes in brightness.
+ + Black: A black background.
+ + White: A white gradient.
+ + Steps: A stepped luma chart with distinct brightness levels.
+ + Smooth: A smooth luma gradient with continuous changes in brightness.
 
 
  
