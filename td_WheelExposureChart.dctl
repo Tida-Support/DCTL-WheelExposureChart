@@ -1,0 +1,153 @@
+
+DEFINE_UI_PARAMS(RADIUS, Wheel Radius, DCTLUI_SLIDER_FLOAT, 0.2, 0.0, 0.5, 0.001)
+
+DEFINE_UI_PARAMS(SATURATION, Saturation, DCTLUI_SLIDER_FLOAT, 0.5, 0.0, 1.0, 0.001)
+
+DEFINE_UI_PARAMS(DELTA, Hue Delta, DCTLUI_SLIDER_FLOAT, 0.75, -1.0, 1.0, 0.001)
+DEFINE_UI_PARAMS(NUMB, Luma Steps, DCTLUI_SLIDER_INT, 10, 3, 100, 1)
+DEFINE_UI_PARAMS(PIECES, Hue Pieces, DCTLUI_SLIDER_INT, 12, 0, 30, 1)
+
+DEFINE_UI_PARAMS(WHEELType, Wheel Type, DCTLUI_COMBO_BOX  , 1, {WT0, WT1, WT2, WT3},{None, YCbCr, HSL-120, HSL})
+DEFINE_UI_PARAMS(RAMPType, Ramp Type, DCTLUI_COMBO_BOX  , 2, {RT0, RT1, RT2, RT3},{Black, White, Steps, Smooth})
+
+
+
+
+
+
+__DEVICE__ float3 hsl2rgb(float3 HSL) {
+    float3 RGB = {0.0f, 0.0f, 0.0f}; // Initialize RGB to zero
+
+    if (HSL.y == 0.0f) {
+        // Achromatic (grey)
+        RGB.x = RGB.y = RGB.z = HSL.z;
+        return RGB;
+    } else {
+        float q = HSL.z < 0.5f ? HSL.z * (1.0f + HSL.y) : HSL.z + HSL.y - HSL.z * HSL.y;
+        float p = 2.0f * HSL.z - q;
+        float hk = HSL.x;
+
+        float t[3];
+        t[0] = hk + 1.0f / 3.0f; // Red
+        t[1] = hk;               // Green
+        t[2] = hk - 1.0f / 3.0f; // Blue
+
+        for (int i = 0; i < 3; i++) {
+            if (t[i] < 0.0f) t[i] += 1.0f;
+            if (t[i] > 1.0f) t[i] -= 1.0f;
+
+            if (t[i] < 1.0f / 6.0f) {
+                t[i] = p + ((q - p) * 6.0f * t[i]);
+            } else if (t[i] < 1.0f / 2.0f) {
+                t[i] = q;
+            } else if (t[i] < 2.0f / 3.0f) {
+                t[i] = p + ((q - p) * (2.0f / 3.0f - t[i]) * 6.0f);
+            } else {
+                t[i] = p;
+            }
+        }
+
+        RGB.x = t[0];
+        RGB.y = t[1];
+        RGB.z = t[2];
+    }
+    return RGB;
+}  
+
+
+
+__DEVICE__ float3 YCbCrtoRGB_Rec709(float3 YCbCr) {
+    float3 RGB;
+    RGB.x = YCbCr.x + 1.5748f   * (YCbCr.z);
+    RGB.y = YCbCr.x - 0.187324f * (YCbCr.y) - 0.468124f * (YCbCr.z);
+    RGB.z = YCbCr.x + 1.8556f   * (YCbCr.y);
+    return RGB;
+}
+
+__DEVICE__  float3 maxSaturatedRGBFromHue(float hueDeg, float Y, float chroma) {
+    float PI = 3.14159f;
+    float hueRad = hueDeg * (PI / 180.0f);
+    float Cb = chroma * _cosf(hueRad);
+    float Cr = chroma * _sinf(hueRad);
+    float3 RGB = make_float3(1.0f,1.0f,1.0f);
+    RGB = YCbCrtoRGB_Rec709(make_float3(Y,Cb,Cr));
+    return RGB; 
+}
+
+__DEVICE__ float3 drawYCbCrCircle(float2 xy, float2 wh, float2 center, float radius, float AngleDelta, float RGBInZoom, float inv, float delta, float boolHSV, float pieces) {
+    float PI = 3.14159f;
+    // Calculate distance from the center
+    float ratio = wh.x/wh.y; 
+    float2 dxy = xy/wh - make_float2(center.x/ratio,center.y*ratio);
+    dxy.x = dxy.x * ratio;
+    float dist = _sqrtf((dxy.x * dxy.x + dxy.y * dxy.y));
+    // Check if the pixel is within the circle
+
+
+
+    if ((dist < radius)) {
+    if (_floor(xy.x/8.0f) == _floor(center.x/8.0f*wh.y)) {return make_float3(0.1f,0.1f,0.1f);}
+    if (_floor(xy.y/8.0f) == _floor(center.y/8.0f*wh.x)) {return make_float3(0.1f,0.1f,0.1f);}
+        dist = dist* 2.7f;
+        float angle = _atan2f(dxy.y, dxy.x);
+        float hue = angle / (2.0f * PI)*360.0f;
+        float3 rgb = make_float3(0.0f,0.0f,0.0f);
+            float boolShow = 1.0f;
+    if (pieces > -1.0f) {boolShow = _sinf(hue*3.14159f*pieces/180.0f+0.5*3.14159f)+delta;}
+        if (boolShow > 0.0f) {
+            if (boolHSV==1.0f) {rgb = maxSaturatedRGBFromHue(hue+AngleDelta, inv*(1.0f-dist)+(1.0f-inv)*dist, 1.0f/RGBInZoom*dist*_sqrtf(2.0f) );}
+            if (boolHSV==2.0f) {rgb = hsl2rgb(make_float3(hue/360.0f+240.0f/360.0f,1.0f/RGBInZoom*dist*2.65,inv*(1.0f-dist)+(1.0f-inv)*dist));}
+            if (boolHSV==3.0f) {rgb = hsl2rgb(make_float3(hue/360.0f,1.0f/RGBInZoom*dist*2.65,inv*(1.0f-dist)+(1.0f-inv)*dist));}            
+        }          
+        return make_float3(rgb.x,rgb.y,rgb.z);
+
+    }
+    return make_float3(0.0f,0.0f,0.0f);            
+}
+
+	__DEVICE__ float3 minF3(float3 x, float3 y) {return make_float3(_fminf(x.x,y.x),_fminf(x.y,y.y),_fminf(x.z,y.z));}
+    __DEVICE__ float3 maxF3(float3 x, float3 y) {return make_float3(_fmaxf(x.x,y.x),_fmaxf(x.y,y.y),_fmaxf(x.z,y.z));}
+	__DEVICE__ float3 floorF3(float3 x){return make_float3(_floor(x.x), _floor(x.y),_floor(x.z));}
+	__DEVICE__ float3 absF3(float3 x){return make_float3(_fabs(x.x), _fabs(x.y),_fabs(x.z));}
+
+
+
+
+
+__DEVICE__ float3 transform(int p_Width, int p_Height, int p_X, int p_Y, float p_R, float p_G, float p_B) 
+{
+float no = NUMB;
+float3 iC0  = make_float3(p_R, p_G, p_B);
+float3 iC1  = make_float3(0.0f, 0.0f, 0.0f);
+if (RAMPType == RT1) {iC1  = make_float3(1.0f, 1.0f, 1.0f);}
+if (RAMPType == RT2) {iC1  = make_float3(1.0f, 1.0f, 1.0f)*(_floor((no)*p_X/p_Width)/(no)+0.5f/no);}
+if (RAMPType == RT3) {iC1  = make_float3(1.0f, 1.0f, 1.0f)*p_X/p_Width;}
+if (RAMPType > 1){iC0 = iC1;}
+
+
+if (WHEELType > 0) {
+    //float3 iC1  = make_float3(1.0f, 1.0f, 1.0f)*_floor(no*p_X/p_Width)/(no-1.0f);
+    float2 wh = make_float2(p_Height, p_Width);
+    float2 center = make_float2(0.275f,0.5);    
+    float RGBInZoom = (1.0f-SATURATION)*2.0f*2.7f;
+    float boolInvert = 1.0f;
+    float WHEELTypeF = 0.0f;
+    if (WHEELType == WT1) {WHEELTypeF = 1.0f;}
+    if (WHEELType == WT2) {WHEELTypeF = 2.0f;}
+    if (WHEELType == WT3) {WHEELTypeF = 3.0f;}
+
+    float3 iC2 =   drawYCbCrCircle(make_float2(p_X,p_Height-p_Y), wh, center, RADIUS,0.0f,RGBInZoom,boolInvert,DELTA,WHEELTypeF,PIECES);  
+    boolInvert = 0.0f;
+    center = make_float2(1.0f-0.275f,0.5f);  
+    float3 iC3 =   drawYCbCrCircle(make_float2(p_X,p_Height-p_Y), wh, center, RADIUS,0.0f,RGBInZoom,boolInvert,DELTA,WHEELTypeF,PIECES);  
+    if (dot(iC2,make_float3(1.0f,1.0f,1.0f))>0.0f) {iC1=iC2;}
+    if (dot(iC3,make_float3(1.0f,1.0f,1.0f))>0.0f) {iC1=iC3;}
+    iC0 = iC1;
+
+}
+
+    
+
+    return iC0;
+}			
+
